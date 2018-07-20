@@ -1,0 +1,296 @@
+---
+title: "second week: Introduction to R and Rstudio"
+subtitle: "Mobile Data"
+author: "Ali Farahbakhsh - 93101995"
+date: "`r Sys.time()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+<div align="center">
+<img  src="images/smartphones.jpg"  align = 'center'>
+</div>
+
+<h1 dir="RTL"> 
+تمرین سری دوم: تلفن همراه شناسی!
+</h1>
+
+> <p dir="RTL"> 
+ با استفاده از داده های گوشی های همراه به سوالات زیر پاسخ دهید. 
+برای رسم نمودار از پکیج 
+ggplot2
+استفاده کنید.
+</p>
+
+***
+
+<p dir="RTL">
+۱. کدام شرکت بیشترین تعداد گوشی را تولید کرده است؟
+نمودار ستونی ۲۰ شرکت برتر بر حسب تعداد گوشی تولید کرده را رسم کنید.
+</p>
+
+```{r , include=FALSE}
+library(readr);
+library(ggplot2);
+library(dplyr);
+library(highcharter)
+mobileData = read_csv('mobile_data.csv');
+```
+
+
+```{r}
+mobileData %>% group_by(company) %>% summarize(companyCount = n()) %>% arrange(desc(companyCount)) -> companyCount;
+companyCount$company <- factor(companyCount$company, levels = companyCount$company)
+companyCount = companyCount[1 : 20,];
+brand = ggplot(data = companyCount , aes(x = company , y = companyCount));
+brand + geom_bar(stat = 'identity' , color = 'dodgerblue3' , fill = 'firebrick') + ggtitle("Top 20 total produced devices among companies") + ylab("Total devices") + theme(axis.text.x = element_text(angle = 270));
+```
+
+
+***
+
+<p dir="RTL">
+۲. نمودار زمانی طول عرض  ضخامت و کیفیت دوربین گوشی ها را بکشید
+ و به نمودار هر یک مدل خطی اضافه کنید.
+</p>
+
+```{r}
+mobileData %>% group_by(year) %>% summarize(mobileLength = mean(dim_length , na.rm = T)) -> mobileLength;
+length = ggplot(data = mobileLength , aes(x = year , y = mobileLength));
+lengthCoef = coef(lm(mobileLength ~ year , data = mobileLength));
+length + geom_point() + geom_abline(intercept = lengthCoef[1] , slope = lengthCoef[2]) + ggtitle("Length over time") + ylab("Length");
+```
+
+```{r}
+mobileData %>% group_by(year) %>% summarize(mobileBreadth = mean(dim_breadth , na.rm = T)) -> mobileBreadth;
+breadth = ggplot(data = mobileBreadth , aes(x = year , y = mobileBreadth));
+lengthCoef = coef(lm(mobileBreadth ~ year , data = mobileBreadth));
+breadth + geom_point() + geom_abline(intercept = lengthCoef[1] , slope = lengthCoef[2]) + ggtitle("Breadth over time") + ylab("Breadth");
+```
+
+```{r}
+mobileData %>% group_by(year) %>% summarize(cameraQuality = mean(cam_px , na.rm = T)) %>% na.omit() -> cameraQuality;
+qual = ggplot(data = cameraQuality , aes(x = year , y = cameraQuality));
+lengthCoef = coef(lm(cameraQuality ~ year , data = cameraQuality));
+qual + geom_point() + geom_abline(intercept = lengthCoef[1] , slope = lengthCoef[2])  +ggtitle("Camera quality over time") + ylab("Camera quality");
+```
+
+```{r}
+mobileData %>% group_by(year) %>% summarize(mobileThickness = mean(dim_thickness , na.rm = T)) -> mobileThickness;
+breadth = ggplot(data = mobileThickness , aes(x = year , y = mobileThickness));
+lengthCoef = coef(lm(mobileThickness ~ year , data = mobileThickness));
+breadth + geom_point() + geom_abline(intercept = lengthCoef[1] , slope = lengthCoef[2]) + ggtitle("Thickness over time") + ylab("Thickness");
+```
+
+<p dir="RTL">
+در این نمودار ها متوسط متغیرهای خواسته شده بر حسب سال نمایش داده شده است.
+</p>
+
+***
+
+<p dir="RTL">
+۳. نمودار ستونی متوسط قیمت گوشی بر حسب تعداد سیم کارت و دسترسی به 
+LTE
+را رسم نمایید.
+</p>
+
+```{r}
+mobileData %>% group_by(sim_no , LTE) %>% summarize(price = mean(price , na.rm = T)) -> price;
+price = ggplot(data = price , aes(x = sim_no , y = price) , Position = 'dodge');
+price + geom_bar(stat = 'identity' , aes(fill = LTE)) + ggtitle("Average price based on sim_no and LTE");
+```
+
+
+***
+
+<p dir="RTL">
+۴. نمودار جعبه ایی ضحامت گوشی هایی که در سال ۲۰۱۷ معرفی شده اند را برحسب اینکه کمیت جک هدفون رسم نمایید
+</p>
+
+```{r}
+reducedData = mobileData[which(mobileData$year == 2017) , ];
+thickness = ggplot(data = reducedData , aes(x = audio_jack , y = dim_thickness));
+thickness + geom_boxplot() + ggtitle("Thickness boxplot based on audio jack") + ylab("Thickness");
+```
+
+
+***
+
+<p dir="RTL">
+۵. مفهوم 
+ppi 
+را در گوشی های موبایل محاسبه و هیستوگرام آن را رسم نمایید.
+همچنین نمودار سالانه متوسط این کمیت را بکشید.
+کدام گوشی بیشترین
+ppi
+را دارد؟
+</p>
+
+```{r}
+ppiData = mobileData$px_col
+ppi = (mobileData$px_row ^ 2 + mobileData$px_col ^ 2) ^ 0.5;
+ppi = ppi / (mobileData$display_size);
+ppi = as.data.frame(ppi);
+ppi %>% na.omit() -> ppi;
+ppiPlot = ggplot(data = ppi , aes(x = ppi));
+ppiPlot + geom_histogram(binwidth = 12 , color = 'darkolivegreen4' , fill = 'darkorange2') + ggtitle('Number of the devices based on PPI');
+```
+
+```{r}
+ppi = mobileData[c('year' , 'px_row' , 'px_col' , 'company' , 'device')]
+ppi[c('px_row')] = (mobileData$px_row ^ 2 + mobileData$px_col ^ 2) ^ 0.5;
+ppi[c('px_row')] = ppi[c('px_row')] / (mobileData$display_size);
+ppi = as.data.frame(ppi);
+ppi %>% na.omit() %>% arrange(desc(px_row)) -> ppi;
+ppi %>% group_by(year) %>% summarize(ppiData = mean(px_row , na.rm = T)) -> ppiData;
+ppiMeanPlot = ggplot(data = ppiData , aes(x = year , y = ppiData));
+ppiMeanPlot + geom_point() + ggtitle("Average PPI over the course of time") + ylab('PPI');
+print(paste(head(ppi , 1)$company , head(ppi , 1)$device))
+```
+ 
+
+***
+
+<p dir="RTL">
+۶. در گذشته به بعضی از مدل های گوشی نوکیا 
+**گوشکوب**
+گفته می شد. سعی کنید برای این مفهوم کمیتی مناسب تعریف کنید .
+ ده گوشکوب برتر را پیدا کرده و نمودار گوشکوبیت آن را رسم نمایید.
+</p>
+
+```{r}
+gushkubiat = (mobileData$dim_thickness ^ 1.9) * (mobileData$dim_length ^ 1.2) / (mobileData$dim_breadth ^ 0.8);
+mobileData$gushkubiat = gushkubiat;
+data = mobileData[c('company' , 'device' , 'gushkubiat' , 'dim_length')];
+data = data[which(data$dim_length < 180) , ];
+data = data[which(140 < data$dim_length) , ];
+data %>% na.omit() %>% arrange(desc(gushkubiat)) -> data;
+data$gushkubiat = data$gushkubiat / max(data$gushkubiat);
+maxData = data[1 : 10 , ];
+maxData$device <- factor(maxData$device, levels = maxData$device)
+gushkub = ggplot(data = maxData , aes(x = device , y = gushkubiat));
+gushkub + geom_point(stat = 'identity') + theme(axis.text.x = element_text(angle = 270));
+print(maxData[c('company' , 'device' , 'gushkubiat')])
+```
+
+
+***
+
+<p dir="RTL">
+۷. آیا تلفن همراهی وجود دارد که در آب غرق نشود؟
+اگر جواب بله هست تمام گوشی های که این خاصیت را دارند بیابید.
+با کشیدن یک نمودار به این سوال پاسخ دهید.
+</p>
+
+```{r}
+Density = mobileData$weight / (mobileData$dim_breadth * mobileData$dim_length * mobileData$dim_thickness);
+mobileData$Density = 1000 * Density;
+data = mobileData[c('company' , 'device' , 'Density')];
+data %>% na.omit() %>%  arrange(desc(Density)) -> data;
+Density = ggplot(data = data , aes(x = device , y = Density))
+Density + geom_bar(stat = 'identity') + geom_abline(intercept = 1 , slope = 0 , color = 'red') + ggtitle("Density - Devices above the red line drown in water")
+```
+
+<p RTL="dir">
+با توجه به حجم بالای خروجی، از چاپ کردن تمام گوشی هایی که در آب غرق می شوند خودداری شده است. برای یافتن آن ها کافیست از دستور فیلتر استفاده کرد.
+</p>
+
+
+***
+
+<p dir="RTL">
+۸. نمودار پراکنش حجم ذخیره سازی باطری و وزن را رسم نمایید.
+میزان همبستگی بین این دو کمیت را محاسبه کنید.
+</p>
+
+```{r}
+data = mobileData[c('battery_mah' , 'weight')];
+data %>% na.omit() -> data;
+battery = ggplot(data = data , aes(x = battery_mah , y = weight));
+battery + geom_point() + ggtitle("Battery storage based on device weight") + ylab('weight')
+battery = ggplot()
+Corr = cor(data$battery_mah , data$weight);
+print(Corr)
+```
+
+
+***
+
+<p dir="RTL">
+۹. قیمت پرچمداران یک برند خاص مثلا سامسونگ را بیابید و نمودار قیمت زمان و نام مدل را رسم نمایید.
+</p>
+
+```{r}
+data = mobileData[which(mobileData$company == 'Samsung') , ];
+data %>% na.omit() %>%  group_by(year) %>% slice(which.max(price)) %>% select(year , device , price) -> yearData
+flagYear = ggplot(data = yearData , aes(x = year , y = price));
+flagYear + geom_bar(stat = 'identity') + geom_text(aes(label = device) , angle = -90 , hjust = -0.1 , color = 'white') + ggtitle("Samsung flags");
+```
+
+
+***
+
+<p dir="RTL">
+۱۰. سه نمودار جالب رسم کنید و توضیح دهید چرا از نظر شما جالب است؟
+</p>
+
+```{r}
+mobileData %>% select(year , company , device , sel_px , cam_px) -> camData
+camData %>% group_by(year) %>% na.omit() %>%  summarise(selPX = mean(sel_px , na.rm = T)) -> selPX
+selpx = ggplot(data = selPX , aes(x = year , y = selPX))
+selpx + geom_bar(stat = 'identity' , fill = 'gold1' , color = 'black') + ggtitle('Selfie camera quality over time') + ylab('Sel-Qual')
+```
+
+
+<p dir="RTL">
+از روی نمودار می توان دید که کیفیت دوربین جلوی گوشی ها با گذر زمان روندی نمایی داشته است که با در نظر گرفتن افزایش چشمگیر عکس های سلفی، این اتفاق منطقی است و با انتظارات هم خوانی دارد.
+</p>
+
+```{r}
+mobileData %>% select(year , price , os_type , company , device) %>% na.omit() -> os
+os %>% group_by(year , os_type) %>% summarize(count = n()) -> OS
+OS %>% group_by(year) %>% mutate(yearSum = cumsum(count)) -> OS
+OS %>% group_by(year) %>% mutate(osPer = count / max(yearSum)) -> OS
+osType = ggplot(data = OS , aes(x = year , y = osPer))
+osType + geom_bar(stat = 'identity' , position = 'dodge' , aes(fill = os_type)) + ggtitle("Percentage of each OS over time")
+```
+
+<p dir="RTL">
+همان گونه که از روی نمودار مشخص است، در بین داده های موجود، ابتدا سیستم عامل های Microsoft و  Symbian بیش تر استفاده شده اند ولی از جایی به بعد سیستم عامل Android عرصه ی موبایل را فرا گرفته و حجم بزرگی از بازار را به خود اختصاص داده است. البته داده های معنی دار در این زمینه از سال 2008 شروع می شوند و مثلا از سال 2003 فقط داده ی یک گوشی موجود است که در آن از سیستم عامل Blackberry استفاده شده است.
+</p>
+
+```{r}
+os %>% group_by(year , os_type) %>% summarize(meanOSPrice = mean(price , na.rm = T)) -> meanOS
+meanOSgg = ggplot(data = meanOS , aes(x = year , y = meanOSPrice))
+meanOSgg + geom_bar(stat = 'identity' , position = 'dodge' , aes(fill = os_type)) + ggtitle("Mean OS price over years")
+```
+
+<p dir="RTL">
+در نمودار بالا می بینیم که علی رغم سهم بالای اندروید در بین سیستم عامل های موجود در سال های اخیر، لزوما گوشی هایی که سیستم عامل اندروید دارند گران ترین گوشی های موجود نیستند و به نوعی به علت فراگیر بودن، این سیستم عامل تاثیر چندانی به روی قیمت نمی گذارد. البته قیمت های موجود در داده همگی یک واحد یکسان ندارند، ولی به نظر می رسد عموما قیمت واحدی داشته باشند.
+</p>
+
+
+```{r}
+mobileData %>% arrange(year) %>%  select(year , ram , cam_px , battery_mah , price , sel_px) %>% na.omit() -> rcbPrice
+rcbPrice %>% group_by(ram) %>% summarise(ramP = mean(price , na.rm = T)) -> RP
+rp = ggplot(data = RP , aes(x = ram , y = ramP))
+rp + geom_point() + ggtitle("RAM based on average price")
+```
+
+```{r}
+rcbPrice %>% group_by(cam_px) %>% summarise(camP = mean(price , na.rm = T)) -> CP
+cp = ggplot(data = CP , aes(x = cam_px , y = camP))
+cp + geom_point() + ggtitle("cam_px based on average price")
+```
+
+```{r}
+rcbPrice %>% group_by(battery_mah) %>% summarise(batP = mean(price , na.rm = T)) -> BP
+bp = ggplot(data = BP , aes(x = battery_mah , y = batP))
+bp + geom_point() + ggtitle("battery_mah based on average price")
+```
+
+<p dir="RTL">
+با توجه به نمودارهای بالا می توان دید که رم و کیفیت دوربین اصلی گوشی روی قیمت آن تاثیر دارند و با پیشرفت سخت افزاری گوشی، قیمتش نیز به طور ملموسی افزایش می یابد. این امر در کیقیت دوربین اصلی به خوبی دیده می شود. اما ظرفیت باتری در قیمت گوشی تقریبا تاثیری ندارد و در واقع از لحاظ تکنولوژیکی به نظر می رسد که باتری ها ساده تر از سایر قطعات ساخته شده و در گوشی قرار می گیرند.
+</p>
